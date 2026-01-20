@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WASIFY - Notes Sharing</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Segoe UI",sans-serif;
+}
+
+/* ===== DARK BLUE ANIMATED BACKGROUND ===== */
+body{
+    min-height:100vh;
+    background:linear-gradient(-45deg,#050b1e,#0b1d3a,#1a2f5a,#0b1d3a);
+    background-size:400% 400%;
+    animation:bgMove 12s ease infinite;
+    overflow:hidden;
+}
+
+@keyframes bgMove{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+/* ===== GOLDEN MOVING DOTS ===== */
+.particles{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+}
+
+.dot{
+    position:absolute;
+    width:5px;
+    height:5px;
+    background:#f5c542;
+    border-radius:50%;
+    box-shadow:0 0 10px #f5c542;
+    animation:moveUp linear infinite;
+}
+
+@keyframes moveUp{
+    from{transform:translateY(110vh);opacity:0}
+    10%{opacity:1}
+    to{transform:translateY(-10vh);opacity:0}
+}
+
+/* ===== SPLASH SCREEN ===== */
+#splash{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:inherit;
+    z-index:10;
+}
+
+#splash h1{
+    font-size:64px;
+    letter-spacing:6px;
+    color:#f5c542;
+    text-shadow:0 0 25px #f5c542;
+}
+
+#splash p{
+    color:#e6d28a;
+    margin:15px 0;
+}
+
+#splash button{
+    padding:15px 40px;
+    font-size:18px;
+    border:none;
+    border-radius:30px;
+    background:#f5c542;
+    color:#1a1a1a;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 0 20px #f5c542;
+    transition:.3s;
+}
+
+#splash button:hover{
+    transform:scale(1.1);
+}
+
+/* ===== MAIN UI ===== */
+header{
+    text-align:center;
+    padding:20px;
+    font-size:30px;
+    color:#f5c542;
+    font-weight:bold;
+    position:relative;
+    z-index:2;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    padding:20px;
+    position:relative;
+    z-index:2;
+}
+
+/* GLASS CARD */
+.card{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(15px);
+    border-radius:16px;
+    padding:25px;
+    box-shadow:0 25px 60px rgba(0,0,0,.6);
+    color:white;
+    animation:slideUp .7s ease;
+}
+
+@keyframes slideUp{
+    from{transform:translateY(40px);opacity:0}
+    to{transform:translateY(0);opacity:1}
+}
+
+input,textarea,button{
+    width:100%;
+    padding:12px;
+    margin-top:12px;
+    border-radius:8px;
+    border:none;
+    font-size:16px;
+}
+
+input,textarea{
+    background:rgba(255,255,255,.15);
+    color:white;
+}
+
+input::placeholder,textarea::placeholder{
+    color:#ddd;
+}
+
+button{
+    background:#f5c542;
+    color:#1a1a1a;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.hidden{display:none}
+
+/* NOTES */
+.note{
+    background:rgba(255,255,255,.12);
+    padding:18px;
+    border-radius:12px;
+    margin-top:15px;
+}
+
+.note img{
+    max-width:100%;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+/* STARS */
+.star{
+    font-size:26px;
+    color:#aaa;
+    cursor:pointer;
+}
+.star.active,
+.star:hover{
+    color:#f5c542;
+    transform:scale(1.2);
+}
+
+.logout{
+    background:#c53030;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<!-- GOLDEN DOTS -->
+<div class="particles" id="particles"></div>
+
+<!-- SPLASH -->
+<div id="splash">
+    <h1>WASIFY</h1>
+    <p>Share • Learn • Grow</p>
+    <button onclick="enterApp()">Enter WASIFY</button>
+</div>
+
+<header>📘 WASIFY Notes Sharing</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div id="loginBox" class="card hidden">
+    <h2>Login / Signup</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<!-- NOTES -->
+<div id="notesBox" class="card hidden">
+    <h2>Add Notes</h2>
+    <input id="title" placeholder="Note title">
+    <textarea id="content" rows="4" placeholder="Write notes..."></textarea>
+    <input type="file" accept="image/*" capture="camera" id="imageInput">
+
+    <div>
+        <span class="star" onclick="rate(1)">★</span>
+        <span class="star" onclick="rate(2)">★</span>
+        <span class="star" onclick="rate(3)">★</span>
+        <span class="star" onclick="rate(4)">★</span>
+        <span class="star" onclick="rate(5)">★</span>
+    </div>
+
+    <button onclick="addNote()">Upload</button>
+    <button class="logout" onclick="logout()">Logout</button>
+
+    <h2>Shared Notes</h2>
+    <div id="notes"></div>
+</div>
+
+</div>
+
+<script>
+/* FULLSCREEN */
+function enterApp(){
+    let el=document.documentElement;
+    if(el.requestFullscreen) el.requestFullscreen();
+    document.getElementById("splash").style.display="none";
+    document.getElementById("loginBox").classList.remove("hidden");
+}
+
+/* GOLDEN DOTS */
+const box=document.getElementById("particles");
+for(let i=0;i<60;i++){
+    let d=document.createElement("div");
+    d.className="dot";
+    d.style.left=Math.random()*100+"%";
+    d.style.animationDuration=(6+Math.random()*6)+"s";
+    d.style.animationDelay=Math.random()*5+"s";
+    box.appendChild(d);
+}
+
+/* APP LOGIC */
+let user=localStorage.getItem("user");
+let notes=JSON.parse(localStorage.getItem("notes"))||[];
+let rating=0;
+
+if(user){
+    loginBox.classList.add("hidden");
+    notesBox.classList.remove("hidden");
+    showNotes();
+}
+
+function login(){
+    if(!username.value||!password.value) return alert("Fill all fields");
+    localStorage.setItem("user",username.value);
+    loginBox.classList.add("hidden");
+    notesBox.classList.remove("hidden");
+    showNotes();
+}
+
+function logout(){
+    localStorage.removeItem("user");
+    location.reload();
+}
+
+function rate(n){
+    rating=n;
+    document.querySelectorAll(".star").forEach((s,i)=>{
+        s.classList.toggle("active",i<n);
+    });
+}
+
+function addNote(){
+    if(!title.value||!content.value) return alert("Fill all fields");
+    let reader=new FileReader();
+    let img=imageInput.files[0];
+
+    reader.onload=()=>{
+        notes.unshift({
+            user,
+            title:title.value,
+            content:content.value,
+            rating,
+            image:reader.result
+        });
+        localStorage.setItem("notes",JSON.stringify(notes));
+        showNotes();
+    };
+    if(img) reader.readAsDataURL(img);
+    else reader.onload();
+}
+
+function showNotes(){
+    notesDiv.innerHTML="";
+    notes.forEach(n=>{
+        notesDiv.innerHTML+=`
+        <div class="note">
+            <h3>${n.title}</h3>
+            <p>${n.content}</p>
+            <p>⭐ ${n.rating}/5</p>
+            ${n.image?`<img src="${n.image}">`:""}
+            <small>By ${n.user}</small>
+        </div>`;
+    });
+}
+</script>
+
+</body>
+</html>
